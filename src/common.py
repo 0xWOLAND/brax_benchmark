@@ -17,10 +17,12 @@ class BaseTrainer(ABC):
         self.episode_rewards = []
         self.final_avg_reward = 0.0
         self.total_time = 0.0
+        self.progress_callback = None
 
-    def train(self):
+    def train(self, progress_callback=None):
         """Main training loop with common logging and timing."""
         print(f"=== Training with {self.method_name} ===")
+        self.progress_callback = progress_callback
 
         # Setup
         self.setup_environment()
@@ -61,9 +63,18 @@ class BaseTrainer(ABC):
         """Calculate final average reward."""
         pass
 
-    def log_progress(self, iteration, avg_reward):
+    def log_progress(self, step, avg_reward, step_name="Iteration"):
         """Log training progress."""
-        print(f"Iteration {iteration}: Avg Reward: {avg_reward:.4f}")
+        assert self.start_time is not None
+        elapsed_time = time.time() - self.start_time
+        print(f"{step_name} {step}: Avg Reward: {avg_reward:.4f}, Time: {elapsed_time:.2f}s")
+        if self.progress_callback:
+            self.progress_callback(
+                step=step,
+                avg_reward=avg_reward,
+                elapsed_time=elapsed_time,
+                step_name=step_name,
+            )
 
     def get_results(self):
         """Get training results in standardized format."""

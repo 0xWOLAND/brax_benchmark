@@ -69,7 +69,7 @@ class BraxTrainer(BaseTrainer):
 
             if len(self.episode_rewards) % LOG_INTERVAL == 0:
                 avg_reward = np.mean(self.episode_rewards[-LOG_INTERVAL:])
-                print(f"Timestep {timestep}: Avg Reward: {avg_reward:.4f}")
+                self.log_progress(timestep, avg_reward, step_name="Timestep")
 
     def calculate_final_reward(self):
         if self.episode_rewards:
