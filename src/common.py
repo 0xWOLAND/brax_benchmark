@@ -67,7 +67,9 @@ class BaseTrainer(ABC):
         """Log training progress."""
         assert self.start_time is not None
         elapsed_time = time.time() - self.start_time
-        print(f"{step_name} {step}: Avg Reward: {avg_reward:.4f}, Time: {elapsed_time:.2f}s")
+        print(
+            f"{step_name} {step}: Avg Reward: {avg_reward:.4f}, Time: {elapsed_time:.2f}s"
+        )
         if self.progress_callback:
             self.progress_callback(
                 step=step,
