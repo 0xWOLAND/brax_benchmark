@@ -1,7 +1,7 @@
 [project]
 name = "brax-benchmark"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple benchmark comparing Brax and RSL-RL for humanoid training."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,4 +12,9 @@ dependencies = [
     "rsl-rl-lib>=2.3.3",
     "gymnasium>=0.29.0",
     "imageio>=2.37.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.5",
 ]
