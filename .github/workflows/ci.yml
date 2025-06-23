@@ -7,28 +7,21 @@ on:
     branches: [master]
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/astral-sh/uv:0.5-python3.11
-    env:
-      UV_CACHE_DIR: .uv-cache
-      UV_LINK_MODE: copy
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cache uv
-        uses: actions/cache@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          path: ${{ env.UV_CACHE_DIR }}
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
+          version: "0.7.13"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: uv sync --extra dev
-
+        run: uv sync --locked
+      
       - name: Check formatting
-        run: ruff format --check .
+        run: uv run ruff format --check .
