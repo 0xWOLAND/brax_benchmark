@@ -24,7 +24,11 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
 
 class RSLRLTrainer(BaseTrainer):
     def _train_implementation(self):
-        device, device_rank = ("cuda:0", 0) if any(d.platform == 'gpu' for d in jax.devices()) else ("cpu", 0)
+        device, device_rank = (
+            ("cuda:0", 0)
+            if any(d.platform == "gpu" for d in jax.devices())
+            else ("cpu", 0)
+        )
         env_cfg = registry.get_default_config(self.env_name)
         randomizer = registry.get_domain_randomizer(self.env_name)
 
@@ -48,7 +52,9 @@ class RSLRLTrainer(BaseTrainer):
         train_cfg.checkpoint = -1
 
         train_cfg_dict = train_cfg.to_dict()
-        runner = OnPolicyRunner(brax_env, train_cfg_dict, str(self.logdir), device=device)
+        runner = OnPolicyRunner(
+            brax_env, train_cfg_dict, str(self.logdir), device=device
+        )
 
         runner.learn(
             num_learning_iterations=NUM_TIMESTEPS,
@@ -59,4 +65,3 @@ class RSLRLTrainer(BaseTrainer):
 if __name__ == "__main__":
     trainer = RSLRLTrainer(ENV_NAME)
     trainer.start_training()
-  

@@ -26,11 +26,13 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
         return manipulation_params.brax_ppo_config(env_name)
     elif env_name in mujoco_playground.locomotion._envs:
         from mujoco_playground.config import locomotion_params
+
         return locomotion_params.brax_ppo_config(env_name)
     elif env_name in mujoco_playground.dm_control_suite._envs:
         from mujoco_playground.config import dm_control_suite_params
+
         return dm_control_suite_params.brax_ppo_config(env_name)
-    
+
     raise ValueError(f"Environment {env_name} not found.")
 
 
@@ -40,15 +42,15 @@ class BraxTrainer(BaseTrainer):
         config = get_config(self.env_name)
         config.num_timesteps = NUM_TIMESTEPS
         config.num_evals = NUM_EVALS
-        
+
         self.save_config(env_cfg)
 
         env = registry.load(self.env_name, config=env_cfg)
-        
+
         training_params = dict(config)
         if "network_factory" in training_params:
             del training_params["network_factory"]
-        
+
         network_factory = ppo_networks.make_ppo_networks
 
         def log_progress(step, metrics):
