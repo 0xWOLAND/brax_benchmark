@@ -15,6 +15,7 @@ from constants import ENV_NAME, NUM_TIMESTEPS, NUM_EVALS, SEED
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["MUJOCO_GL"] = "egl"
 
+
 def get_config(env_name: str) -> config_dict.ConfigDict:
     """Get default PPO config for the environment."""
     if env_name in mujoco_playground.manipulation._envs:
