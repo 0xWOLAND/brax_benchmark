@@ -60,8 +60,6 @@ class BraxTrainer(BaseTrainer):
             wrap_env_fn=wrapper.wrap_for_brax_training,
         )
 
-        self.writer.add_graph(model, dummy_input)
-
 
 if __name__ == "__main__":
     trainer = BraxTrainer(ENV_NAME)
