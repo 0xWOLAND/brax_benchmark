@@ -33,7 +33,7 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
 
 
 class BraxTrainer(BaseTrainer):
-    def _train_implementation(self):
+    def _train(self):
         env_cfg = registry.get_default_config(self.env_name)
         config = get_config(self.env_name)
         config.num_timesteps = NUM_TIMESTEPS

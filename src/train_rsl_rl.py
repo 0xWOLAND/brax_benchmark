@@ -23,7 +23,7 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
 
 
 class RSLRLTrainer(BaseTrainer):
-    def _train_implementation(self):
+    def _train(self):
         device, device_rank = (
             ("cuda:0", 0)
             if any(d.platform == "gpu" for d in jax.devices())
