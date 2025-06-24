@@ -2,7 +2,6 @@ import os
 
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.agents.ppo import train as ppo
-import jax
 from ml_collections import config_dict
 
 import mujoco_playground
@@ -15,7 +14,6 @@ from constants import ENV_NAME, NUM_TIMESTEPS, NUM_EVALS, SEED
 # Environment setup
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["MUJOCO_GL"] = "egl"
-
 
 def get_config(env_name: str) -> config_dict.ConfigDict:
     """Get default PPO config for the environment."""
@@ -35,25 +33,35 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
 
 class BraxTrainer(BaseTrainer):
     def _train_implementation(self):
-        env = registry.load(self.env_name)
-        network_factory = ppo_networks.make_ppo_networks
+        env_cfg = registry.get_default_config(self.env_name)
+        config = get_config(self.env_name)
+        config.num_timesteps = NUM_TIMESTEPS
+        config.num_evals = NUM_EVALS
+
+        env = registry.load(self.env_name, config=env_cfg)
 
         def log_progress(step, metrics):
-            # self.log_performance(step, metrics)
-            print("step: ", step)
+            print(f"step: {step}, metrics: {metrics}")
+            for key, value in metrics.items():
+                if hasattr(value, "item"):
+                    value = value.item()
+                if isinstance(value, (int, float)):
+                    self.writer.add_scalar(f"training/{key}", value, step)
 
         _ = ppo.train(
             environment=env,
             progress_fn=log_progress,
-            network_factory=network_factory,
             seed=SEED,
-            # save_checkpoint_path=str(self.ckpt_path),
-            wrap_env_fn=wrapper.wrap_for_brax_training,
             num_timesteps=NUM_TIMESTEPS,
-            episode_length=1000,
+            training_metrics_steps=1,
+            episode_length=config.episode_length,
+            network_factory=ppo_networks.make_ppo_networks,
+            wrap_env_fn=wrapper.wrap_for_brax_training,
         )
+
+        self.writer.add_graph(model, dummy_input)
 
 
 if __name__ == "__main__":
     trainer = BraxTrainer(ENV_NAME)
-    trainer.start_training()
+    trainer.train()

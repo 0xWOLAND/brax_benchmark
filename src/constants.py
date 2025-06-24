@@ -1,5 +1,5 @@
 ENV_NAME = "G1JoystickFlatTerrain"
-NUM_TIMESTEPS = 10
+NUM_TIMESTEPS = 3
 NUM_EVALS = 5
 NUM_ENVS = 1
 SEED = 2

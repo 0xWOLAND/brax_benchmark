@@ -20,10 +20,9 @@ class BaseTrainer(ABC):
         )
         self.start_time = None
         self.end_time = None
-        self.performance_metrics = {}
 
         # Setup logging directories with absolute paths
-        self.logdir = Path.cwd() / "logs" 
+        self.logdir = Path.cwd() / "logs" / self.experiment_name
         self.logdir.mkdir(parents=True, exist_ok=True)
         self.ckpt_path = self.logdir / "checkpoints"
         self.ckpt_path.mkdir(parents=True, exist_ok=True)
@@ -41,16 +40,14 @@ class BaseTrainer(ABC):
             # Use absolute path for TensorBoard
             log_dir = self.logdir.resolve()
             subprocess.Popen(
-                ["tensorboard", "--logdir", str(log_dir), "--port", "6006"],
+                ["tensorboard", "--logdir", str(log_dir), "--port", "0"],
             )
-            print("TensorBoard started at: http://localhost:6006")
-            print(f"TensorBoard logdir: {log_dir}")
 
         except Exception as e:
             print(f"Warning: Could not start TensorBoard: {e}")
             print(f"Start manually with: tensorboard --logdir {self.logdir.resolve()}")
 
-    def start_training(self):
+    def train(self):
         """Start training and record start time."""
         self.start_time = time.monotonic()
         print("Starting training...")
@@ -75,7 +72,6 @@ class BaseTrainer(ABC):
             # Save final metrics
             final_metrics = {
                 "total_wall_time_seconds": total_time,
-                "performance_metrics": self.performance_metrics,
                 "experiment_name": self.experiment_name,
                 "env_name": self.env_name,
                 "timestamp": datetime.now().isoformat(),
@@ -87,32 +83,10 @@ class BaseTrainer(ABC):
 
             print(f"Final metrics saved to: {metrics_file}")
 
-    def log_performance(self, step: int, metrics: Dict[str, Any]):
-        """Log performance metrics to TensorBoard."""
-        for key, value in metrics.items():
-            if isinstance(value, (int, float)):
-                self.writer.add_scalar(f"training/{key}", value, step)
-
-        # Also print key metrics to console
-        if "eval/episode_reward" in metrics:
-            reward = metrics["eval/episode_reward"]
-            print(f"{step}: reward={reward:.3f}")
-
-            # Store for final summary
-            if "episode_rewards" not in self.performance_metrics:
-                self.performance_metrics["episode_rewards"] = []
-            self.performance_metrics["episode_rewards"].append(
-                {"step": step, "reward": reward}
-            )
-
-    def save_config(self, config: config_dict.ConfigDict):
-        """Save environment configuration."""
-        config_file = self.ckpt_path / "config.json"
-        with open(config_file, "w", encoding="utf-8") as fp:
-            json.dump(config.to_dict(), fp, indent=4)
-        print(f"Config saved to: {config_file}")
-
     @abstractmethod
     def _train_implementation(self):
         """Implement the actual training logic in subclasses."""
         pass
+
+    def __del__(self):
+        self.writer.close()

@@ -50,10 +50,10 @@ class RSLRLTrainer(BaseTrainer):
         train_cfg.resume = False
         train_cfg.load_run = "-1"
         train_cfg.checkpoint = -1
+        train_cfg.num_timesteps = NUM_TIMESTEPS
 
         train_cfg_dict = train_cfg.to_dict()
-        
-        print(f'train_cfg_dict: {train_cfg_dict}')
+
         runner = OnPolicyRunner(
             brax_env, train_cfg_dict, str(self.logdir), device=device
         )
@@ -65,4 +65,4 @@ class RSLRLTrainer(BaseTrainer):
 
 if __name__ == "__main__":
     trainer = RSLRLTrainer(ENV_NAME)
-    trainer.start_training()
+    trainer.train()
