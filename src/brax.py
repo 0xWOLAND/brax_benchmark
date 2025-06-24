@@ -1,20 +1,3 @@
-# Copyright 2025 DeepMind Technologies Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Train a PPO agent using JAX on the specified environment."""
-
-import functools
 import json
 import os
 import time
@@ -23,7 +6,6 @@ from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.agents.ppo import train as ppo
 from etils import epath
 import jax
-import jax.numpy as jp
 import mediapy as media
 from ml_collections import config_dict
 import mujoco
@@ -32,15 +14,10 @@ import mujoco_playground
 from mujoco_playground import registry
 from mujoco_playground import wrapper
 from mujoco_playground.config import manipulation_params
+from constants import ENV_NAME, NUM_TIMESTEPS, NUM_EVALS, SEED
 
 # Environment settings
-ENV_NAME = "G1JoystickFlatTerrain"
 EXPERIMENT_NAME = "minimal_ppo_training"
-
-# Training settings
-NUM_TIMESTEPS = 1_000_000
-NUM_EVALS = 5
-SEED = 1
 
 # Environment setup
 xla_flags = os.environ.get("XLA_FLAGS", "")
