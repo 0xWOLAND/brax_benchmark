@@ -22,8 +22,8 @@ class BaseTrainer(ABC):
         self.end_time = None
         self.performance_metrics = {}
 
-        # Setup logging directories
-        self.logdir = Path("logs") / self.experiment_name
+        # Setup logging directories with absolute paths
+        self.logdir = Path.cwd() / "logs" 
         self.logdir.mkdir(parents=True, exist_ok=True)
         self.ckpt_path = self.logdir / "checkpoints"
         self.ckpt_path.mkdir(parents=True, exist_ok=True)
@@ -42,8 +42,6 @@ class BaseTrainer(ABC):
             log_dir = self.logdir.resolve()
             subprocess.Popen(
                 ["tensorboard", "--logdir", str(log_dir), "--port", "6006"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
             )
             print("TensorBoard started at: http://localhost:6006")
             print(f"TensorBoard logdir: {log_dir}")

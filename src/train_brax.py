@@ -13,9 +13,6 @@ from base_trainer import BaseTrainer
 from constants import ENV_NAME, NUM_TIMESTEPS, NUM_EVALS, SEED
 
 # Environment setup
-xla_flags = os.environ.get("XLA_FLAGS", "")
-xla_flags += " --xla_gpu_triton_gemm_any=True"
-os.environ["XLA_FLAGS"] = xla_flags
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["MUJOCO_GL"] = "egl"
 
@@ -38,32 +35,22 @@ def get_config(env_name: str) -> config_dict.ConfigDict:
 
 class BraxTrainer(BaseTrainer):
     def _train_implementation(self):
-        env_cfg = registry.get_default_config(self.env_name)
-        config = get_config(self.env_name)
-        config.num_timesteps = NUM_TIMESTEPS
-        config.num_evals = NUM_EVALS
-
-        self.save_config(env_cfg)
-
-        env = registry.load(self.env_name, config=env_cfg)
-
-        training_params = dict(config)
-        if "network_factory" in training_params:
-            del training_params["network_factory"]
-
+        env = registry.load(self.env_name)
         network_factory = ppo_networks.make_ppo_networks
 
         def log_progress(step, metrics):
-            self.log_performance(step, metrics)
+            # self.log_performance(step, metrics)
+            print("step: ", step)
 
         _ = ppo.train(
             environment=env,
             progress_fn=log_progress,
             network_factory=network_factory,
             seed=SEED,
-            save_checkpoint_path=str(self.ckpt_path),
+            # save_checkpoint_path=str(self.ckpt_path),
             wrap_env_fn=wrapper.wrap_for_brax_training,
-            **training_params,
+            num_timesteps=NUM_TIMESTEPS,
+            episode_length=1000,
         )
 
 

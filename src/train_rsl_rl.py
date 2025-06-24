@@ -52,13 +52,14 @@ class RSLRLTrainer(BaseTrainer):
         train_cfg.checkpoint = -1
 
         train_cfg_dict = train_cfg.to_dict()
+        
+        print(f'train_cfg_dict: {train_cfg_dict}')
         runner = OnPolicyRunner(
             brax_env, train_cfg_dict, str(self.logdir), device=device
         )
 
         runner.learn(
-            num_learning_iterations=NUM_TIMESTEPS,
-            init_at_random_ep_len=False,
+            num_learning_iterations=train_cfg.max_iterations,
         )
 
 
