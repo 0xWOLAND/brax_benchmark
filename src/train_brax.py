@@ -54,6 +54,7 @@ class BraxTrainer(BaseTrainer):
             progress_fn=log_progress,
             seed=SEED,
             num_timesteps=NUM_TIMESTEPS,
+            log_training_metrics=True,
             training_metrics_steps=1,
             episode_length=config.episode_length,
             network_factory=ppo_networks.make_ppo_networks,

@@ -4,9 +4,8 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
-from ml_collections import config_dict
 from tensorboardX import SummaryWriter
 
 
@@ -21,13 +20,11 @@ class BaseTrainer(ABC):
         self.start_time = None
         self.end_time = None
 
-        # Setup logging directories with absolute paths
         self.logdir = Path.cwd() / "logs" / self.experiment_name
         self.logdir.mkdir(parents=True, exist_ok=True)
         self.ckpt_path = self.logdir / "checkpoints"
         self.ckpt_path.mkdir(parents=True, exist_ok=True)
 
-        # Setup TensorBoard writer
         self.writer = SummaryWriter(str(self.logdir))
 
         print(f"Environment: {env_name}")
@@ -35,9 +32,7 @@ class BaseTrainer(ABC):
         print(f"Logs stored in: {self.logdir}")
 
     def _start_tensorboard(self):
-        """Start TensorBoard server."""
         try:
-            # Use absolute path for TensorBoard
             log_dir = self.logdir.resolve()
             subprocess.Popen(
                 ["tensorboard", "--logdir", str(log_dir), "--port", "0"],
@@ -52,10 +47,9 @@ class BaseTrainer(ABC):
         self.start_time = time.monotonic()
         print("Starting training...")
 
-        # Start TensorBoard
         self._start_tensorboard()
 
-        self._train_implementation()
+        self._train()
         self.end_time = time.monotonic()
         self._log_final_metrics()
         self.writer.close()
@@ -66,10 +60,8 @@ class BaseTrainer(ABC):
             total_time = self.end_time - self.start_time
             print(f"Training completed in {total_time:.2f} seconds")
 
-            # Log final wall time to TensorBoard
             self.writer.add_scalar("training/total_wall_time_seconds", total_time, 0)
 
-            # Save final metrics
             final_metrics = {
                 "total_wall_time_seconds": total_time,
                 "experiment_name": self.experiment_name,
@@ -84,8 +76,7 @@ class BaseTrainer(ABC):
             print(f"Final metrics saved to: {metrics_file}")
 
     @abstractmethod
-    def _train_implementation(self):
-        """Implement the actual training logic in subclasses."""
+    def _train(self):
         pass
 
     def __del__(self):
