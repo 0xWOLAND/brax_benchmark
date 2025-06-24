@@ -1,131 +1,68 @@
-import torch
-import numpy as np
-import time
-from rsl_rl.algorithms import PPO
-from rsl_rl.modules import ActorCritic
-from rsl_rl.env import VecEnv
-import gymnasium as gym
-from gymnasium.envs.mujoco.humanoid_v4 import HumanoidEnv
-from config import *
-from common import BaseTrainer
+import os
+import jax
+from base_trainer import BaseTrainer
+from constants import ENV_NAME, NUM_ENVS, NUM_TIMESTEPS, SEED
+from ml_collections import config_dict
+from mujoco_playground import registry, wrapper_torch
+from mujoco_playground.config import manipulation_params, locomotion_params
+from rsl_rl.runners import OnPolicyRunner
+
+# Set environment variables for GPU support
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["MUJOCO_GL"] = "egl"
 
 
-class HumanoidVecEnv(VecEnv):
-    def __init__(self, num_envs=2048):
-        self.num_envs = num_envs
-        self.envs = [HumanoidEnv() for _ in range(num_envs)]
-        self.obs = np.zeros((num_envs, 376))
-        self.rews = np.zeros(num_envs)
-        self.dones = np.zeros(num_envs, dtype=bool)
-        self.actions = np.zeros((num_envs, 17))
-
-    def step(self, actions):
-        if torch.is_tensor(actions):
-            actions = actions.detach().cpu().numpy()
-        elif isinstance(actions, np.ndarray):
-            actions = actions.astype(np.float32)
-
-        self.actions = actions
-        for i, env in enumerate(self.envs):
-            obs, rew, terminated, truncated, _ = env.step(actions[i])
-            self.obs[i] = obs
-            self.rews[i] = rew
-            self.dones[i] = terminated or truncated
-
-        return self.obs.copy(), self.rews.copy(), self.dones.copy(), {}
-
-    def reset(self):
-        for i, env in enumerate(self.envs):
-            obs, _ = env.reset()
-            self.obs[i] = obs
-        return self.obs.copy()
-
-    def get_observations(self):
-        return self.obs.copy()
-
-    def get_rewards(self):
-        return self.rews.copy()
-
-    def get_dones(self):
-        return self.dones.copy()
-
-    def get_actions(self):
-        return self.actions.copy()
+def get_config(env_name: str) -> config_dict.ConfigDict:
+    """Get RL configuration for the environment."""
+    if env_name in registry.manipulation._envs:
+        return manipulation_params.rsl_rl_config(env_name)
+    elif env_name in registry.locomotion._envs:
+        return locomotion_params.rsl_rl_config(env_name)
+    else:
+        raise ValueError(f"No RL config for {env_name}")
 
 
 class RSLRLTrainer(BaseTrainer):
-    def __init__(self):
-        super().__init__("RSL-RL")
-        self.env = None
-        self.actor_critic = None
-        self.ppo = None
-        self.obs = None
+    def _train_implementation(self):
+        device, device_rank = (
+            ("cuda:0", 0)
+            if any(d.platform == "gpu" for d in jax.devices())
+            else ("cpu", 0)
+        )
+        env_cfg = registry.get_default_config(self.env_name)
+        randomizer = registry.get_domain_randomizer(self.env_name)
 
-    def setup_environment(self):
-        self.env = HumanoidVecEnv(NUM_ENVS)
-        self.print_environment_info(
-            f"HumanoidVecEnv with {NUM_ENVS} parallel environments",
-            HUMANOID_OBSERVATION_SIZE,
-            HUMANOID_ACTION_SIZE,
+        # Create environment
+        raw_env = registry.load(self.env_name, config=env_cfg)
+        brax_env = wrapper_torch.RSLRLBraxWrapper(
+            raw_env,
+            NUM_ENVS,
+            SEED,
+            env_cfg.episode_length,
+            1,
+            randomization_fn=randomizer,
+            device_rank=device_rank,
         )
 
-    def setup_policy(self):
-        self.actor_critic = ActorCritic(
-            num_actor_obs=HUMANOID_OBSERVATION_SIZE,
-            num_critic_obs=HUMANOID_OBSERVATION_SIZE,
-            num_actions=HUMANOID_ACTION_SIZE,
-            actor_hidden_dims=ACTOR_HIDDEN_DIMS,
-            critic_hidden_dims=CRITIC_HIDDEN_DIMS,
-            device="cpu",
-        )
-        self.print_policy_info("Actor-critic network")
+        train_cfg = get_config(self.env_name)
+        train_cfg.seed = SEED
+        train_cfg.run_name = self.experiment_name
+        train_cfg.resume = False
+        train_cfg.load_run = "-1"
+        train_cfg.checkpoint = -1
+        train_cfg.num_timesteps = NUM_TIMESTEPS
 
-        self.ppo = PPO(policy=self.actor_critic, device="cpu", **PPO_PARAMS)
-        self.print_policy_info("PPO algorithm")
+        train_cfg_dict = train_cfg.to_dict()
 
-    def run_training_loop(self):
-        assert self.env is not None, "Environment not initialized"
-        assert self.actor_critic is not None, "Actor-critic not initialized"
-        assert self.ppo is not None, "PPO not initialized"
-
-        self.obs = torch.tensor(self.env.reset(), dtype=torch.float32)
-
-        for iteration in range(TRAINING_ITERATIONS):
-            print(f"Training iteration {iteration}")
-            for _step in range(BRAX_MAX_STEPS):
-                with torch.no_grad():
-                    actions = self.actor_critic.act_inference(self.obs)
-
-                obs_np, rewards, _, _ = self.env.step(actions.detach().cpu().numpy())
-                self.obs = torch.tensor(obs_np, dtype=torch.float32)
-
-                self.episode_rewards.extend(rewards)
-            self.ppo.update()
-
-            if iteration % LOG_INTERVAL == 0:
-                avg_reward = (
-                    np.mean(
-                        self.episode_rewards[
-                            -NUM_ENVS * BRAX_MAX_STEPS * LOG_INTERVAL :
-                        ]
-                    )
-                    if self.episode_rewards
-                    else 0
-                )
-                self.log_progress(iteration, avg_reward)
-
-    def calculate_final_reward(self):
-        return (
-            np.mean(self.episode_rewards[-NUM_ENVS * 20 :])
-            if self.episode_rewards
-            else 0
+        runner = OnPolicyRunner(
+            brax_env, train_cfg_dict, str(self.logdir), device=device
         )
 
-
-def train_rsl_rl_humanoid():
-    trainer = RSLRLTrainer()
-    return trainer.train()
+        runner.learn(
+            num_learning_iterations=train_cfg.max_iterations,
+        )
 
 
 if __name__ == "__main__":
-    train_rsl_rl_humanoid()
+    trainer = RSLRLTrainer(ENV_NAME)
+    trainer.train()
