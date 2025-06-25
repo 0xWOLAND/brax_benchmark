@@ -1,11 +1,9 @@
-import os
-
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.agents.ppo import train as ppo
 from mujoco_playground import registry, wrapper
 
 from base_trainer import BaseTrainer
-from constants import ENV_NAME, NUM_TIMESTEPS, NUM_EVALS, SEED
+from constants import DEFAULT_ENV, NUM_TIMESTEPS, NUM_EVALS, SEED
 
 
 class BraxTrainer(BaseTrainer):
@@ -38,5 +36,16 @@ class BraxTrainer(BaseTrainer):
 
 
 if __name__ == "__main__":
-    trainer = BraxTrainer(ENV_NAME)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Train Brax PPO agent.")
+    parser.add_argument(
+        "--env",
+        type=str,
+        default=DEFAULT_ENV,
+        help=f"Environment name (default: {DEFAULT_ENV})",
+    )
+    args = parser.parse_args()
+
+    trainer = BraxTrainer(args.env)
     trainer.train()

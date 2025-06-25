@@ -1,4 +1,4 @@
-ENV_NAME = "G1JoystickFlatTerrain"
+DEFAULT_ENV = "G1JoystickFlatTerrain"
 NUM_TIMESTEPS = 1_000_000
 NUM_ENVS = 128
 NUM_EVALS = 5

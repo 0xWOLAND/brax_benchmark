@@ -1,7 +1,6 @@
-import os
 import jax
 from base_trainer import BaseTrainer
-from constants import ENV_NAME, NUM_ENVS, NUM_TIMESTEPS, SEED
+from constants import DEFAULT_ENV, NUM_ENVS, NUM_TIMESTEPS, SEED
 from ml_collections import config_dict
 from mujoco_playground import registry, wrapper_torch
 from mujoco_playground.config import manipulation_params, locomotion_params
@@ -54,6 +53,17 @@ class RSLRLTrainer(BaseTrainer):
 
 
 if __name__ == "__main__":
-    trainer = RSLRLTrainer(ENV_NAME)
+    import argparse
 
+    parser = argparse.ArgumentParser(description="Train RSL-RL agent.")
+    parser.add_argument(
+        "--env",
+        type=str,
+        default=DEFAULT_ENV,
+        help=f"Environment name (default: {DEFAULT_ENV})",
+    )
+    args = parser.parse_args()
+
+    trainer = RSLRLTrainer(args.env)
     trainer.train()
+
