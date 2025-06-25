@@ -10,7 +10,7 @@ uv run src/train_brax.py
 uv run src/train_rsl_rl.py
 ```
 
-Both implementations train a humanoid robot for 100 iterations with identical hyperparameters for fair comparison.
+Both implementations train a humanoid robot for 1,000,000 iterations with identical hyperparameters for fair comparison.
 
 
 

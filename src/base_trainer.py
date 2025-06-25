@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import time
 from abc import ABC, abstractmethod
@@ -7,6 +8,11 @@ from pathlib import Path
 from typing import Optional
 
 from tensorboardX import SummaryWriter
+
+
+# Environment setup
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["MUJOCO_GL"] = "egl"
 
 
 class BaseTrainer(ABC):

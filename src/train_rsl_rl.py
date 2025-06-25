@@ -7,10 +7,6 @@ from mujoco_playground import registry, wrapper_torch
 from mujoco_playground.config import manipulation_params, locomotion_params
 from rsl_rl.runners import OnPolicyRunner
 
-# Set environment variables for GPU support
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["MUJOCO_GL"] = "egl"
-
 
 def get_config(env_name: str) -> config_dict.ConfigDict:
     """Get RL configuration for the environment."""
@@ -29,16 +25,15 @@ class RSLRLTrainer(BaseTrainer):
             if any(d.platform == "gpu" for d in jax.devices())
             else ("cpu", 0)
         )
-        env_cfg = registry.get_default_config(self.env_name)
+        config = registry.get_default_config(self.env_name)
         randomizer = registry.get_domain_randomizer(self.env_name)
 
-        # Create environment
-        raw_env = registry.load(self.env_name, config=env_cfg)
+        raw_env = registry.load(self.env_name, config=config)
         brax_env = wrapper_torch.RSLRLBraxWrapper(
             raw_env,
             NUM_ENVS,
             SEED,
-            env_cfg.episode_length,
+            config.episode_length,
             1,
             randomization_fn=randomizer,
             device_rank=device_rank,
@@ -50,19 +45,15 @@ class RSLRLTrainer(BaseTrainer):
         train_cfg.resume = False
         train_cfg.load_run = "-1"
         train_cfg.checkpoint = -1
-        train_cfg.num_timesteps = NUM_TIMESTEPS
-
-        train_cfg_dict = train_cfg.to_dict()
 
         runner = OnPolicyRunner(
-            brax_env, train_cfg_dict, str(self.logdir), device=device
+            brax_env, train_cfg.to_dict(), str(self.logdir), device=device
         )
 
-        runner.learn(
-            num_learning_iterations=train_cfg.max_iterations,
-        )
+        runner.learn(num_learning_iterations=NUM_TIMESTEPS)
 
 
 if __name__ == "__main__":
     trainer = RSLRLTrainer(ENV_NAME)
+
     trainer.train()
